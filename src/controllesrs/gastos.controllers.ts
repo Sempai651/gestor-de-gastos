@@ -15,7 +15,10 @@ export const gastosController = {
  */
 
 if (req.query.categoria && typeof req.query.categoria === 'string') {
-  where.categoria = req.query.categoria;
+  const { Op } = require('sequelize');
+  where.categoria = {
+    [Op.eq]: req.query.categoria
+  };
 }
 /**
  * Filtrado por fecha 
@@ -93,7 +96,7 @@ const gastos = await Gasto.findAll({
         );
       }
 
-      if (!categoria || !['Comida', 'Transporte', 'Entretenimiento', 'Servicio publico', 'Otros'].includes(categoria)) {
+      if (!categoria || !['Comida', 'Transporte', 'Entretenimiento', 'ServicioPublico', 'Otros'].includes(categoria)) {
         return res.status(422).json(
           ResponseService.error('VALIDATION_ERROR', 'Categoría no válida', 422)
         );
@@ -167,7 +170,7 @@ const gastos = await Gasto.findAll({
         );
       }
 
-      if (categoria && !['Comida', 'Transporte', 'Entretenimiento', 'Servicio publico', 'Otros'].includes(categoria)) {
+      if (categoria && !['Comida', 'Transporte', 'Entretenimiento', 'ServicioPublico', 'Otros'].includes(categoria)) {
         return res.status(422).json(
           ResponseService.error('VALIDATION_ERROR', 'Categoría no válida', 422)
         );
@@ -228,75 +231,74 @@ const gastos = await Gasto.findAll({
       );
     }
   },
-     
-    /**
-     *  Calcular y mostrar estadisticas 
-     */
 
-    estadisticas: async (req: Request, res: Response) => {
-      try {
-         
-        const gastos = await Gasto.findAll();
+  /**
+   *  Calcular y mostrar estadisticas 
+   */
 
-        if (gastos.length === 0) {
-          return res.status(200).json (
-            ResponseService.success(
-              {
-                totalGastos:0,
-                cantidadGastos:0,
-                promedioPorGastos:0,
-                porCategoria: {
-                  Comida: 0,
-                  Transporte: 0,
-                  Entrenamiento: 0,
-                  ServiciosPublicos: 0,
-                  Otros: 0 
-                }
-              },
-              200
-            )
-          );
-        }
-        
-      const totalGastos = gastos.reduce((sum, gasto) => sum + Number(gasto.monto), 0);
+  estadisticas: async (req: Request, res: Response) => {
+    try {
+       
+      const gastos = await Gasto.findAll();
 
-      const cantidadGastos = gastos.length;
-
-      const promedioPorGasto = cantidadGastos > 0 ? totalGastos / cantidadGastos : 0;
-
-      const porCategoria = {
-        Comida: 0,
-        Transporte: 0,
-        Entretenimiento: 0,
-        ServiciosPublicos: 0,
-        otros: 0
-      };
-
-      gastos.forEach((gasto)=> {
-        porCategoria[gasto.categoria as keyof typeof porCategoria] += Number(gasto.monto);
-      });
-      
-      return res.status(200).json(
-        ResponseService.success({
-
-          totalGastos: Number(totalGastos.toFixed(2)),
-          cantidadGastos,
-          promedioPorGasto: Number(promedioPorGasto.toFixed(2)),
-          porCategoria
-
-        },
-        200
-      )
-      );
-
-
-
-      }catch (error) {
-        return res.status(500).json(
-          ResponseService.error('INTERNAL_ERROR', 'error al obtener estadisticas', 500)
-
+      if (gastos.length === 0) {
+        return res.status(200).json (
+          ResponseService.success(
+            {
+              totalGastos:0,
+              cantidadGastos:0,
+              promedioPorGastos:0,
+              porCategoria: {
+                Comida: 0,
+                Transporte: 0,
+                Entrenamiento: 0,
+                ServicioPublico: 0,
+                Otros: 0 
+              }
+            },
+            200
+          )
         );
       }
+      
+    const totalGastos = gastos.reduce((sum, gasto) => sum + Number(gasto.monto), 0);
+
+    const cantidadGastos = gastos.length;
+
+    const promedioPorGasto = cantidadGastos > 0 ? totalGastos / cantidadGastos : 0;
+
+    const porCategoria = {
+      Comida: 0,
+      Transporte: 0,
+      Entretenimiento: 0,
+      ServicioPublico: 0,
+      Otros: 0
+    };
+
+    gastos.forEach((gasto)=> {
+      porCategoria[gasto.categoria as keyof typeof porCategoria] += Number(gasto.monto);
+    });
+    
+    return res.status(200).json(
+      ResponseService.success({
+
+        totalGastos: Number(totalGastos.toFixed(2)),
+        cantidadGastos,
+        promedioPorGasto: Number(promedioPorGasto.toFixed(2)),
+        porCategoria
+
+      },
+      200
+    )
+    );
+
+
+
+    }catch (error) {
+      return res.status(500).json(
+        ResponseService.error('INTERNAL_ERROR', 'error al obtener estadisticas', 500)
+
+      );
+    }
   }
 };
-

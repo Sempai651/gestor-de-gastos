@@ -5,7 +5,7 @@ export class Gasto extends Model {
   declare id: number;
   declare descripcion: string;
   declare monto: number;
-  declare categoria: 'Comida' | 'Transporte' | 'Entretenimiento' | 'Servicios publicos' | 'Otros';
+  declare categoria: 'Comida' | 'Transporte' | 'Entretenimiento' | 'ServicioPublico' | 'Otros';
   declare fecha: string;
   declare createdAt: Date;
   declare updatedAt: Date;
@@ -35,7 +35,7 @@ Gasto.init(
       }
     },
     categoria: {
-      type: DataTypes.ENUM('Comida', 'Transporte', 'Entretenimiento', 'Servicios publicos', 'Otros'),
+      type: DataTypes.ENUM('Comida', 'Transporte', 'Entretenimiento', 'ServicioPublico', 'Otros'),
       allowNull: false
     },
     fecha: {
