@@ -1,8 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { initializeDatabase } from './config/database';
 import gastosRoutes from './routes/gastos.routes';
 import { errorHandler } from './middleware/errorHandler';
+
 
 dotenv.config();
 
@@ -35,8 +37,19 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
-});
+async function startServer() {
+  try {
+    await initializeDatabase();
+    
+    app.listen(PORT, () => {
+      console.log(` Servidor ejecutándose en http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error(' No se pudo iniciar el servidor:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
 
 export default app;

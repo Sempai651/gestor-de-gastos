@@ -1,7 +1,7 @@
 
 
 
- export interface gasto {
+ export interface Gasto {
   id?: number;
   descripcion: string;
   monto: number;
@@ -16,7 +16,7 @@
   * Cramos un gasto pero todos son      obligatorios
   */
 
- export type CreateGastoDto = Omit<gasto, 'id' | 'createdAt'>;
+ export type CreateGastoDto = Omit<Gasto, 'id' | 'createdAt'>;
 
  /**
   * actualizamos pero todos los cmapos son opcionales

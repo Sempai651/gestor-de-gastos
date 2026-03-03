@@ -1,32 +1,24 @@
-import Database from "better-sqlite3";
-import path from "node:path";
+import { Sequelize } from 'sequelize';
+import path from 'path';
 
+const dbPath = path.join(__dirname, '../../gastos.sqlite');
 
+export const sequelize = new Sequelize({
+  dialect: 'sqlite',
+  storage: dbPath,
+  logging: false,
+  sync: { force: false }
+});
 
-const dbPath = path.join(__dirname, '../../gastos.db');
-
-export const db = new Database(dbPath);
-
-db.pragma('journal_mode = WAL');
-
-/**
- * Hacemos la tabla gastos con seguridad de por medio 
- */
-
-db.exec(`
-    CREATE TABLE IF NOT EXISTS gastos (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    descripcion TEXT NOT NULL,
-    monto REAL NOT NULL,
-    categoria TEXT NOT NULL CHECK(
-    categoria IN ('Comida','Transporte','Entretenimiento','Utilidades','otros')
-    ),
+export async function initializeDatabase() {
+  try {
+    await sequelize.authenticate();
+    console.log(' Conectado a SQLite correctamente');
     
-    fecha TEXT NOT NULL,
-    createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
-    updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
-    )
-    
-    `);
-
-    console.log('base de datos iniciada correctamente');
+    await sequelize.sync();
+    console.log(' Modelos sincronizados con la BD');
+  } catch (error) {
+    console.error(' Error al conectar a BD:', error);
+    process.exit(1);
+  }
+}

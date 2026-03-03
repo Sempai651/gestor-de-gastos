@@ -1,89 +1,100 @@
-
-import {Request, Response} from 'express';
-import {db} from '../config/database';
-import {ResponseService} from '../utils/response';
-import {CreateGastoDto, UpdateGastoDto, gasto} from '../types/gasto';
-
+import { Request, Response } from 'express';
+import { Gasto, CreateGastoDto, UpdateGastoDto } from '../models/Gasto';
+import { ResponseService } from '../utils/response';
 
 export const gastosController = {
-    listar:(req: Request, res: Response) => {
-        try{
-            const gastos = db.prepare('SELECT * FROM gastos ORDER BY fecha DESC').all();
-            return res.status(200).json(ResponseService.success(gastos, 200));
-        } catch (error) {
-            return res.status(500).json(
-                ResponseService.error('INTERNAL_ERROR', 'Error al listar gastos', 500)
-            );
-        }
-    },
+  listar: async (req: Request, res: Response) => {
+    try {
+      const gastos = await Gasto.findAll({
+        order: [['fecha', 'DESC']]
+      });
+      return res.status(200).json(ResponseService.success(gastos, 200));
+    } catch (error) {
+      return res.status(500).json(
+        ResponseService.error('INTERNAL_ERROR', 'Error al listar gastos', 500)
+      );
+    }
+  },
 
-    obtenerPorId: (req: Request, res: Response)=>{
-        try{
-            const {id} = req.params;
-            if(isNaN(Number(id))) {
-                return res.status(400).json(
-                    ResponseService.error('VALIDATION_ERROR', 'ID debe ser un numero', 400)
-                );
-            }
-               
-            const gaste = db.prepare('SELECT * FROM gastos WHERE id = ?').get(id) as gasto;
+  obtenerPorId: async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
 
-            if (!gaste){
-                return res.status(404).json(
-                    ResponseService.error('NOT_FOUND', 'Gasto no encontrado', 404)
-                );
-            }  
+      if (isNaN(Number(id))) {
+        return res.status(400).json(
+          ResponseService.error('VALIDATION_ERROR', 'ID debe ser un número', 400)
+        );
+      }
 
-            return res.status(200).json(ResponseService.success(gaste,200));
-           
-          }catch(error) {
-            return res.status(500).json(
-                ResponseService.error('INTERNAL_ERROR', 'Error al obtener gasto', 500)
-            );
-          }
-    },
+      const gasto = await Gasto.findByPk(Number(id));
 
-    crear:(req: Request, res: Response) => {
-        try {
-            const {descripcion, monto, categoria, fecha}: CreateGastoDto = req.body;
-            if (!descripcion || typeof descripcion !== 'string' || descripcion.trim().length < 3) {
-                return res.status(422).json(
-                    ResponseService.error('VALIDATION_ERROR', 'Descripcion debe tener al menos 3 caracteres', 422)
-                );
-            }
-            if (!monto || typeof monto !== 'number' || monto <= 0) {
-                return res.status(422).json(
-                    ResponseService.error('VALIDATION_ERROR', 'Monto debe ser un numero positivo', 422)
-                );
-            }
-            if(!categoria || !['Comida', 'Transporte', 'Entretenimienmmto', 'Utilidades','Otros'].includes(categoria)){
-              return res.status(422).json(
-                ResponseService.error('VALIDATION_ERROR', 'Categoria no valida', 422)
-              );  
-            }
-            if (!fecha || typeof fecha !== 'string'){
-                return res.status(422).json(
-                    ResponseService.error('VALIDATION_ERROR', 'Fecha es requerida', 422)
-                );
-            }
+      if (!gasto) {
+        return res.status(404).json(
+          ResponseService.error('NOT_FOUND', 'Gasto no encontrado', 404)
+        );
+      }
 
-            const stmt = db.prepare(`
-               INSERT INTO gastos (descripcion, monto, categoria, fecha)
-               VALUES (?,?,?,?) `
-            );
+      return res.status(200).json(ResponseService.success(gasto, 200));
+    } catch (error) {
+      return res.status(500).json(
+        ResponseService.error('INTERNAL_ERROR', 'Error al obtener gasto', 500)
+      );
+    }
+  },
 
-            const result = stmt.run(descripcion, monto, categoria, fecha);
-            const nuevoGasto = db.prepare('SELECT * FROM gastos WHERE id = ?').get(result.lastInsertRowid);
+  crear: async (req: Request, res: Response) => {
+    try {
+      const { descripcion, monto, categoria, fecha }: CreateGastoDto = req.body;
 
-            return res.status(201).json(ResponseService.success(nuevoGasto, 201));
-        }catch (error) {
-            return res.status(500).json (
-                ResponseService.error('INTERNAL_ERROR', 'Error al crear gasto', 500)
-            );
-        }
-    },
+      // Validaciones manuales (Sequelize también valida)
+      if (!descripcion || typeof descripcion !== 'string' || descripcion.trim().length < 3) {
+        return res.status(422).json(
+          ResponseService.error('VALIDATION_ERROR', 'Descripción debe tener al menos 3 caracteres', 422)
+        );
+      }
 
-    actualizar: (req: Request, res: Response) => {
+      if (!monto || typeof monto !== 'number' || monto <= 0) {
+        return res.status(422).json(
+          ResponseService.error('VALIDATION_ERROR', 'Monto debe ser un número positivo', 422)
+        );
+      }
+
+      if (!categoria || !['Comida', 'Transporte', 'Entretenimiento', 'Utilities', 'Otros'].includes(categoria)) {
+        return res.status(422).json(
+          ResponseService.error('VALIDATION_ERROR', 'Categoría no válida', 422)
+        );
+      }
+
+      if (!fecha || typeof fecha !== 'string') {
+        return res.status(422).json(
+          ResponseService.error('VALIDATION_ERROR', 'Fecha es requerida', 422)
+        );
+      }
+
+      // Crear gasto con Sequelize
+      const nuevoGasto = await Gasto.create({
+        descripcion,
+        monto,
+        categoria,
+        fecha
+      });
+
+      return res.status(201).json(ResponseService.success(nuevoGasto, 201));
+    } catch (error: any) {
+      // Capturar errores de validación de Sequelize
+      if (error.name === 'SequelizeValidationError') {
+        return res.status(422).json(
+          ResponseService.error('VALIDATION_ERROR', error.errors[0].message, 422)
+        );
+      }
+
+      return res.status(500).json(
+        ResponseService.error('INTERNAL_ERROR', 'Error al crear gasto', 500)
+      );
+    }
+  },
+
+  actualizar: async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { descripcion, monto, categoria, fecha }: UpdateGastoDto = req.body;
@@ -94,13 +105,14 @@ export const gastosController = {
         );
       }
 
-      const gastoExistente = db.prepare('SELECT * FROM gastos WHERE id = ?').get(id) as gasto;
+      const gastoExistente = await Gasto.findByPk(Number(id)) as Gasto;
       if (!gastoExistente) {
         return res.status(404).json(
           ResponseService.error('NOT_FOUND', 'Gasto no encontrado', 404)
         );
       }
 
+      // Validaciones opcionales
       if (descripcion && (typeof descripcion !== 'string' || descripcion.trim().length < 3)) {
         return res.status(422).json(
           ResponseService.error('VALIDATION_ERROR', 'Descripción inválida', 422)
@@ -119,31 +131,29 @@ export const gastosController = {
         );
       }
 
-      const stmt = db.prepare(`
-        UPDATE gastos
-        SET descripcion = ?, monto = ?, categoria = ?, fecha = ?, updatedAt = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `);
+      // Actualizar con Sequelize
+      await gastoExistente.update({
+        descripcion: descripcion ?? gastoExistente.descripcion,
+        monto: monto ?? gastoExistente.monto,
+        categoria: categoria ?? gastoExistente.categoria,
+        fecha: fecha ?? gastoExistente.fecha
+      });
 
-      stmt.run(
-        descripcion ?? gastoExistente.descripcion,
-        monto ?? gastoExistente.monto,
-        categoria ?? gastoExistente.categoria,
-        fecha ?? gastoExistente.fecha,
-        id
-      );
+      return res.status(200).json(ResponseService.success(gastoExistente, 200));
+    } catch (error: any) {
+      if (error.name === 'SequelizeValidationError') {
+        return res.status(422).json(
+          ResponseService.error('VALIDATION_ERROR', error.errors[0].message, 422)
+        );
+      }
 
-      const gastoActualizado = db.prepare('SELECT * FROM gastos WHERE id = ?').get(id);
-
-      return res.status(200).json(ResponseService.success(gastoActualizado, 200));
-    } catch (error) {
       return res.status(500).json(
         ResponseService.error('INTERNAL_ERROR', 'Error al actualizar gasto', 500)
       );
     }
   },
 
-  eliminar: (req: Request, res: Response) => {
+  eliminar: async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -153,14 +163,15 @@ export const gastosController = {
         );
       }
 
-      const gastoExistente = db.prepare('SELECT * FROM gastos WHERE id = ?').get(id);
-      if (!gastoExistente) {
+      const gasto = await Gasto.findByPk(Number(id));
+      if (!gasto) {
         return res.status(404).json(
           ResponseService.error('NOT_FOUND', 'Gasto no encontrado', 404)
         );
       }
 
-      db.prepare('DELETE FROM gastos WHERE id = ?').run(id);
+      // Eliminar con Sequelize
+      await gasto.destroy();
 
       return res.status(204).send();
     } catch (error) {
