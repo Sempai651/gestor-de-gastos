@@ -5,7 +5,7 @@
   id?: number;
   descripcion: string;
   monto: number;
-  categoria: 'Comida' | 'Transporte' | 'Entretenimiento' | 'Utilidades' | 'Otros';
+  categoria: 'Comida' | 'Transporte' | 'Entretenimiento' | 'Servicios publicos' | 'Otros';
   fecha: string;
   createdAt?: string;
 

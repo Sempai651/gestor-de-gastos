@@ -5,7 +5,7 @@ export class Gasto extends Model {
   declare id: number;
   declare descripcion: string;
   declare monto: number;
-  declare categoria: 'Comida' | 'Transporte' | 'Entretenimiento' | 'Utilities' | 'Otros';
+  declare categoria: 'Comida' | 'Transporte' | 'Entretenimiento' | 'Servicios publicos' | 'Otros';
   declare fecha: string;
   declare createdAt: Date;
   declare updatedAt: Date;
